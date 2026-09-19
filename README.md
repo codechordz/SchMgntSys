@@ -1,0 +1,2 @@
+# SchMgntSys
+School Management System
