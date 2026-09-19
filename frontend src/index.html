@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en" x-data>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X-SMS | School Management System</title>
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./assets/css/custom.css">
+    <!-- Alpine.js Core -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased h-screen overflow-hidden">
+
+    <!-- GLOBAL TOAST NOTIFICATION -->
+    <div x-data x-show="$store.toast.visible" 
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="translate-y-2 opacity-0"
+         x-transition:enter-end="translate-y-0 opacity-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="translate-y-0 opacity-100"
+         x-transition:leave-end="translate-y-2 opacity-0"
+         class="fixed bottom-5 right-5 z-50 flex items-center px-4 py-3 rounded-xl shadow-lg border text-sm font-medium"
+         :class="{
+            'bg-emerald-800 text-white border-emerald-700': $store.toast.type === 'success',
+            'bg-rose-800 text-white border-rose-700': $store.toast.type === 'error',
+            'bg-slate-800 text-white border-slate-700': $store.toast.type === 'info',
+            'bg-amber-800 text-white border-amber-700': $store.toast.type === 'warning'
+         }" style="display: none;">
+        <i class="fa-solid me-2 text-base" 
+           :class="{
+            'fa-circle-check': $store.toast.type === 'success',
+            'fa-triangle-exclamation': $store.toast.type === 'error',
+            'fa-circle-info': $store.toast.type === 'info',
+            'fa-bell': $store.toast.type === 'warning'
+           }"></i>
+        <span x-text="$store.toast.message"></span>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="w-64 bg-slate-900 text-slate-300 flex flex-col justify-between p-4 border-e border-slate-800 no-print">
+            <div>
+                <!-- Brand Header (Stylized X Badge) -->
+                <div class="flex items-center space-x-3 mb-8 px-2">
+                    <div class="relative w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-blue-500/25 ring-1 ring-white/20">
+                        <i class="fa-solid fa-xmark text-lg transform -rotate-6 transition-transform hover:rotate-0"></i>
+                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-indigo-400 rounded-full blur-[2px] opacity-70"></div>
+                    </div>
+                    
+                    <div>
+                        <h1 class="font-bold text-slate-100 text-sm leading-tight uppercase tracking-wider" x-text="$store.app.licenseStatus.schoolName">Acme Academy</h1>
+                        <span class="text-[11px] text-blue-400 font-bold tracking-wide">X-SMS Engine v2.0</span>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="space-y-1">
+                    <template x-for="item in [
+                        { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie' },
+                        { id: 'admissions', label: 'Admissions & Students', icon: 'fa-user-graduate' },
+                        { id: 'academics', label: 'Marks & Report Cards', icon: 'fa-pen-to-square' },
+                        { id: 'bursary', label: 'Bursary & Fees', icon: 'fa-wallet' },
+                        { id: 'messaging', label: 'SMS & Broadcasts', icon: 'fa-paper-plane' },
+                        { id: 'licensing', label: 'Vendor & Licensing', icon: 'fa-key' }
+                    ]">
+                        <button @click="$store.app.setView(item.id)" 
+                                class="w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl font-medium text-xs transition-all duration-150"
+                                :class="$store.app.currentView === item.id ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20 font-semibold' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'">
+                            <i class="fa-solid w-5 text-center" :class="item.icon"></i>
+                            <span x-text="item.label"></span>
+                        </button>
+                        <button @click="$store.app.setView('reports')" 
+        class="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-xs transition-colors"
+        :class="$store.app.currentView === 'reports' ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'">
+    <i class="fa-solid fa-file-invoice text-sm"></i>
+    <span>Report Cards</span>
+</button>
+                    </template>
+                </nav>
+            </div>
+
+            <!-- License Footer Status -->
+            <div class="bg-slate-800/80 p-3.5 rounded-xl border border-slate-700/60">
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Term System Status</div>
+                <div class="flex items-center justify-between mt-1 text-xs font-semibold">
+                    <span class="text-slate-200" x-text="$store.app.academicTerm">Term 1 2026</span>
+                    <span class="inline-flex items-center text-emerald-400 gap-1 text-[11px]">
+                        <i class="fa-solid fa-circle text-[8px]"></i> Active
+                    </span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+
+            <!-- TOP HEADER -->
+            <header class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between no-print">
+                <div class="flex items-center space-x-4">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Term:</span>
+                    <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-100" x-text="$store.app.academicTerm">Term 1 2026</span>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="text-end">
+                        <div class="text-xs font-bold text-slate-800" x-text="$store.app.user.name">Administrator</div>
+                        <div class="text-[10px] text-slate-400 font-semibold uppercase" x-text="$store.app.user.role">Admin</div>
+                    </div>
+                    <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 font-bold flex items-center justify-center border border-slate-200">
+                        <i class="fa-solid fa-user-gear text-xs"></i>
+                    </div>
+                </div>
+            </header>
+
+            <!-- DYNAMIC VIEW CONTAINER -->
+            <main class="flex-1 overflow-y-auto p-8 bg-slate-50/60">
+
+                <!-- DASHBOARD VIEW -->
+                <section x-show="$store.app.currentView === 'dashboard'" class="space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-800">School Executive Summary</h2>
+                            <p class="text-xs text-slate-500">Real-time overview of academics, attendance, and bursary ledger.</p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Enrolled</span>
+                                <div class="text-2xl font-black text-slate-800 mt-1">1,248</div>
+                            </div>
+                            <div class="w-11 h-11 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-user-graduate"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Active Classes</span>
+                                <div class="text-2xl font-black text-slate-800 mt-1">16</div>
+                            </div>
+                            <div class="w-11 h-11 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Fee Collection</span>
+                                <div class="text-2xl font-black text-emerald-600 mt-1">78.4%</div>
+                            </div>
+                            <div class="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-coins"></i></div>
+                        </div>
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center justify-between">
+                            <div>
+                                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Pending Reports</span>
+                                <div class="text-2xl font-black text-amber-600 mt-1">32</div>
+                            </div>
+                            <div class="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-file-signature"></i></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ADMISSIONS VIEW -->
+<section x-show="$store.app.currentView === 'admissions'" x-data="admissionsComponent" class="space-y-6" style="display: none;">
+    <!-- Section Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Student Admissions & Directory</h2>
+            <p class="text-xs text-slate-500">Manage student enrolments, class allocations, and guardian records.</p>
+        </div>
+        <button @click="openAddModal()" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-blue-600/20">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>New Enrolment</span>
+        </button>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="relative w-full md:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+            <input type="text" x-model="searchQuery" placeholder="Search by name, Reg No, or parent..." 
+                   class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+        </div>
+
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+            <select x-model="selectedClassFilter" class="px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium text-slate-600">
+                <option value="">All Classes & Streams</option>
+                <template x-for="c in classes" :key="c.id">
+                    <option :value="c.id" x-text="c.name"></option>
+                </template>
+            </select>
+            <span class="text-xs text-slate-400 font-semibold px-2" x-text="`${filteredStudents.length} Students`"></span>
+        </div>
+    </div>
+
+    <!-- Students Data Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <th class="py-3.5 px-5">Reg Number</th>
+                    <th class="py-3.5 px-5">Full Student Name</th>
+                    <th class="py-3.5 px-5">Class & Stream</th>
+                    <th class="py-3.5 px-5">Status</th>
+                    <th class="py-3.5 px-5">Parent / Guardian</th>
+                    <th class="py-3.5 px-5 text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs font-medium">
+                <template x-for="student in filteredStudents" :key="student.id">
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="py-3.5 px-5 font-mono font-bold text-blue-600" x-text="student.regNo"></td>
+                        <td class="py-3.5 px-5 flex items-center space-x-3">
+                            <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center text-[10px]"
+                                 :class="student.gender === 'M' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'">
+                                <span x-text="student.gender"></span>
+                            </div>
+                            <span class="font-bold text-slate-800" x-text="student.fullName"></span>
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-lg text-[11px] font-semibold" x-text="student.className"></span>
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                                  :class="student.isBoarding ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'"
+                                  x-text="student.isBoarding ? 'Boarding' : 'Day'"></span>
+                        </td>
+                        <td class="py-3.5 px-5">
+                            <div class="text-slate-700 font-semibold" x-text="student.parentName"></div>
+                            <div class="text-[10px] text-slate-400 font-mono" x-text="student.parentPhone"></div>
+                        </td>
+                        <td class="py-3.5 px-5 text-end space-x-1">
+                            <button @click="openEditModal(student)" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-blue-600"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button @click="deleteStudent(student.id, student.fullName)" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-rose-600"><i class="fa-solid fa-trash-can"></i></button>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ENROLMENT / EDIT MODAL -->
+    <div x-show="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" style="display: none;">
+        <div @click.away="showModal = false" class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 class="font-bold text-slate-800 text-base" x-text="isEditing ? 'Edit Student Record' : 'New Student Admission'"></h3>
+                <button @click="showModal = false" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form @submit.prevent="saveStudent()" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Reg Number</label>
+                        <input type="text" x-model="formData.regNo" readonly class="w-full px-3 py-2 text-xs rounded-xl bg-slate-100 border border-slate-200 font-mono font-bold text-slate-600">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Gender</label>
+                        <select x-model="formData.gender" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                            <option value="M">Male</option>
+                            <option value="F">Female</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Full Name *</label>
+                    <input type="text" x-model="formData.fullName" required placeholder="e.g. Mukasa Ronald" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/20">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Class & Stream</label>
+                        <select x-model="formData.classId" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                            <template x-for="c in classes" :key="c.id">
+                                <option :value="c.id" x-text="c.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Boarding Status</label>
+                        <select x-model="formData.isBoarding" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                            <option :value="false">Day Student</option>
+                            <option :value="true">Boarder</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Parent/Guardian Name</label>
+                        <input type="text" x-model="formData.parentName" placeholder="e.g. Kato Paul" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Parent Phone *</label>
+                        <input type="text" x-model="formData.parentPhone" required placeholder="+2567..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
+                    <button type="button" @click="showModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20">
+                        <span x-text="isEditing ? 'Update Student' : 'Complete Admission'"></span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+<!-- REPORT CARDS VIEW -->
+<section x-show="$store.app.currentView === 'reports'" x-data="reportsComponent" class="space-y-6" style="display: none;">
+    <!-- Control Bar (Hidden during printing) -->
+    <div class="print:hidden bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-4">
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Class</label>
+                <select x-model="selectedClassId" @change="loadStudentsForClass(); loadReportCard();" class="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700">
+                    <template x-for="c in classes" :key="c.id">
+                        <option :value="c.id" x-text="c.name"></option>
+                    </template>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Student</label>
+                <select x-model="selectedStudentId" @change="loadReportCard()" class="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700">
+                    <template x-for="s in students" :key="s.id">
+                        <option :value="s.id" x-text="`${s.fullName} (${s.regNo})`"></option>
+                    </template>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Term</label>
+                <span class="inline-block px-3 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200" x-text="selectedTerm"></span>
+            </div>
+        </div>
+
+        <button @click="printReportCard()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-600/20 inline-flex items-center space-x-2">
+            <i class="fa-solid fa-print"></i>
+            <span>Print Report Card</span>
+        </button>
+    </div>
+
+    <!-- PRINTABLE REPORT CARD SHEET -->
+    <div class="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-md max-w-4xl mx-auto font-sans text-slate-800 print:shadow-none print:border-none print:p-0">
+        
+        <!-- School Letterhead Header -->
+        <div class="text-center border-b-2 border-slate-800 pb-6 mb-6">
+            <h1 class="text-2xl font-black uppercase tracking-wider text-slate-900">ACME ACADEMY</h1>
+            <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest">NCDC Lower Secondary Competency Report Card</p>
+            <p class="text-[11px] font-mono text-slate-400 mt-1" x-text="reportData.term"></p>
+        </div>
+
+        <!-- Student Meta Data Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs mb-6">
+            <div>
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Student Name</span>
+                <span class="font-bold text-slate-900" x-text="reportData.studentName"></span>
+            </div>
+            <div>
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Registration No</span>
+                <span class="font-mono font-bold text-blue-600" x-text="reportData.regNo"></span>
+            </div>
+            <div>
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Class Stream</span>
+                <span class="font-semibold text-slate-700" x-text="reportData.className"></span>
+            </div>
+            <div>
+                <span class="block text-[10px] font-bold text-slate-400 uppercase">Overall Mean</span>
+                <span class="font-black text-slate-900" x-text="`${calculateAverageScore()}%`"></span>
+            </div>
+        </div>
+
+        <!-- Assessment Subjects Table -->
+        <div class="overflow-hidden border border-slate-200 rounded-xl mb-6">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3 px-4">Subject</th>
+                        <th class="py-3 px-3 text-center">Formative (20%)</th>
+                        <th class="py-3 px-3 text-center">Exam (80%)</th>
+                        <th class="py-3 px-3 text-center">Total Score</th>
+                        <th class="py-3 px-4 text-center">CBC Descriptor</th>
+                        <th class="py-3 px-4">Subject Teacher Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200">
+                    <template x-for="subj in reportData.subjects" :key="subj.code">
+                        <tr>
+                            <td class="py-3 px-4 font-bold text-slate-900" x-text="`${subj.code} - ${subj.name}`"></td>
+                            <td class="py-3 px-3 text-center font-mono" x-text="subj.formative"></td>
+                            <td class="py-3 px-3 text-center font-mono" x-text="subj.exam"></td>
+                            <td class="py-3 px-3 text-center font-bold font-mono text-slate-900" x-text="`${subj.total}%`"></td>
+                            <td class="py-3 px-4 text-center">
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold border border-slate-300"
+                                      x-text="`${subj.descriptorCode} - ${subj.descriptorLabel}`"></span>
+                            </td>
+                            <td class="py-3 px-4 text-slate-600 italic text-[11px]" x-text="subj.teacherComment"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Summary & Headteacher Comments -->
+        <div class="space-y-4 text-xs">
+            <div class="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-1">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Headteacher Assessment & Guidance</span>
+                <p class="text-slate-700 italic" x-text="reportData.headteacherComment"></p>
+            </div>
+
+            <div class="flex justify-between items-end pt-10 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                <div>
+                    <div class="border-b border-slate-400 w-48 mb-1"></div>
+                    <span>Class Teacher Signature</span>
+                </div>
+                <div>
+                    <div class="border-b border-slate-400 w-48 mb-1"></div>
+                    <span>Headteacher Signature & Stamp</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+
+               <!-- ACADEMICS VIEW (MARKBOOK GRID) -->
+<section x-show="$store.app.currentView === 'academics'" x-data="markbookComponent" class="space-y-6" style="display: none;">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Academic Markbook Grid</h2>
+            <p class="text-xs text-slate-500">Fast keyboard entry for teacher assessment scoring (NCDC CBC & Summative).</p>
+        </div>
+        <button @click="saveAllMarks()" class="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md shadow-blue-600/20">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save Marksheet</span>
+        </button>
+    </div>
+
+    <!-- Filter Control Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center gap-4">
+        <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Target Class</label>
+            <select x-model="selectedClassId" @change="loadMarksheet()" class="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                <template x-for="c in classes" :key="c.id">
+                    <option :value="c.id" x-text="c.name"></option>
+                </template>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Subject</label>
+            <select x-model="selectedSubjectId" @change="loadMarksheet()" class="px-3 py-2 text-xs rounded-xl border border-slate-200 bg-white font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                <template x-for="s in subjects" :key="s.id">
+                    <option :value="s.id" x-text="`${s.code} - ${s.name}`"></option>
+                </template>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Term</label>
+            <span class="inline-block px-3 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl border border-slate-200" x-text="selectedTerm"></span>
+        </div>
+
+        <div class="ms-auto flex items-center space-x-2 text-[11px] text-slate-400 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200/60 font-medium">
+            <i class="fa-solid fa-keyboard text-blue-500"></i>
+            <span>Use <b>Arrow Keys</b> or <b>Enter</b> to step between cells.</span>
+        </div>
+    </div>
+
+    <!-- Keyboard-Driven Markbook Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <th class="py-3.5 px-5">Reg Number</th>
+                    <th class="py-3.5 px-5">Student Name</th>
+                    <th class="py-3.5 px-5 w-32">Formative (20%)</th>
+                    <th class="py-3.5 px-5 w-32">End Exam (80%)</th>
+                    <th class="py-3.5 px-5 w-28 text-center">Total (100%)</th>
+                    <th class="py-3.5 px-5 text-center">CBC Descriptor</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs font-medium">
+                <template x-for="(row, index) in markRows" :key="row.studentId">
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="py-3.5 px-5 font-mono font-bold text-blue-600" x-text="row.regNo"></td>
+                        <td class="py-3.5 px-5 font-bold text-slate-800" x-text="row.studentName"></td>
+                        
+                        <!-- Formative Score Cell -->
+                        <td class="py-2 px-4">
+                            <input type="number" min="0" max="20" step="0.5"
+                                   x-model.number="row.formative"
+                                   :data-cell="`${index}-formative`"
+                                   @keydown="handleKeydown($event, index, 'formative')"
+                                   class="w-full px-3 py-1.5 text-center text-xs font-bold rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                        </td>
+
+                        <!-- Exam Score Cell -->
+                        <td class="py-2 px-4">
+                            <input type="number" min="0" max="80" step="1"
+                                   x-model.number="row.exam"
+                                   :data-cell="`${index}-exam`"
+                                   @keydown="handleKeydown($event, index, 'exam')"
+                                   class="w-full px-3 py-1.5 text-center text-xs font-bold rounded-lg border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none">
+                        </td>
+
+                        <!-- Calculated Total -->
+                        <td class="py-3.5 px-5 text-center font-black text-slate-800 text-sm" x-text="calculateTotal(row)"></td>
+
+                        <!-- CBC Descriptor Tag -->
+                        <td class="py-3.5 px-5 text-center">
+                            <template x-let="desc = calculateDescriptor(calculateTotal(row))">
+                                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold border"
+                                      :class="calculateDescriptor(calculateTotal(row)).bg"
+                                      x-text="`${calculateDescriptor(calculateTotal(row)).code} - ${calculateDescriptor(calculateTotal(row)).label}`"></span>
+                            </template>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+               <!-- BURSARY & FEES VIEW -->
+<section x-show="$store.app.currentView === 'bursary'" x-data="bursaryComponent" class="space-y-6" style="display: none;">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Bursary & Student Fee Ledger</h2>
+            <p class="text-xs text-slate-500">Track tuition payments, issue official receipts, and manage balance balances.</p>
+        </div>
+    </div>
+
+    <!-- Filters & Search Toolbar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="relative w-full md:w-80">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-400 text-xs"></i>
+            <input type="text" x-model="searchQuery" placeholder="Search by student name or Reg No..." 
+                   class="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <select x-model="selectedClassFilter" class="px-3 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium text-slate-600">
+                <option value="">All Classes & Streams</option>
+                <template x-for="c in classes" :key="c.id">
+                    <option :value="c.id" x-text="c.name"></option>
+                </template>
+            </select>
+
+            <button @click="filterDefaultersOnly = !filterDefaultersOnly"
+                    class="px-3 py-2 text-xs rounded-xl border font-semibold transition-all flex items-center space-x-2"
+                    :class="filterDefaultersOnly ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-50 text-slate-600 border-slate-200'">
+                <i class="fa-solid fa-filter"></i>
+                <span>Defaulters Only</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Fee Ledger Table -->
+    <div class="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    <th class="py-3.5 px-5">Reg Number</th>
+                    <th class="py-3.5 px-5">Student Name</th>
+                    <th class="py-3.5 px-5">Class</th>
+                    <th class="py-3.5 px-5 text-end">Term Fee (UGX)</th>
+                    <th class="py-3.5 px-5 text-end">Paid (UGX)</th>
+                    <th class="py-3.5 px-5 text-end">Balance (UGX)</th>
+                    <th class="py-3.5 px-5 text-center">Status</th>
+                    <th class="py-3.5 px-5 text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs font-medium">
+                <template x-for="row in filteredLedger" :key="row.id">
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="py-3.5 px-5 font-mono font-bold text-blue-600" x-text="row.regNo"></td>
+                        <td class="py-3.5 px-5 font-bold text-slate-800" x-text="row.fullName"></td>
+                        <td class="py-3.5 px-5 text-slate-600" x-text="row.className"></td>
+                        <td class="py-3.5 px-5 text-end font-mono font-bold text-slate-700" x-text="row.totalFee.toLocaleString()"></td>
+                        <td class="py-3.5 px-5 text-end font-mono font-bold text-emerald-600" x-text="row.amountPaid.toLocaleString()"></td>
+                        <td class="py-3.5 px-5 text-end font-mono font-bold text-rose-600" x-text="calculateBalance(row).toLocaleString()"></td>
+                        <td class="py-3.5 px-5 text-center">
+                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                                  :class="calculateBalance(row) === 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
+                                  x-text="calculateBalance(row) === 0 ? 'Cleared' : 'Pending'"></span>
+                        </td>
+                        <td class="py-3.5 px-5 text-end">
+                            <button @click="openPaymentModal(row)" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-lg text-[11px] transition-colors border border-blue-200">
+                                Log Payment
+                            </button>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div x-show="showPaymentModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" style="display: none;">
+        <div @click.away="showPaymentModal = false" class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 class="font-bold text-slate-800 text-base">Record Bursary Payment</h3>
+                <button @click="showPaymentModal = false" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form @submit.prevent="processPayment()" class="space-y-4">
+                <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1 text-xs">
+                    <div class="flex justify-between"><span class="text-slate-500">Student:</span> <span class="font-bold text-slate-800" x-text="paymentForm.studentName"></span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Reg No:</span> <span class="font-mono font-bold text-blue-600" x-text="paymentForm.regNo"></span></div>
+                    <div class="flex justify-between"><span class="text-slate-500">Class:</span> <span class="font-semibold text-slate-700" x-text="paymentForm.className"></span></div>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Receipt Number</label>
+                    <input type="text" x-model="paymentForm.receiptNo" readonly class="w-full px-3 py-2 text-xs rounded-xl bg-slate-100 border border-slate-200 font-mono font-bold text-slate-600">
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Payment Method</label>
+                    <select x-model="paymentForm.paymentMethod" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 font-semibold text-slate-700">
+                        <option value="Cash">Cash</option>
+                        <option value="Bank Deposit">Bank Deposit</option>
+                        <option value="Mobile Money">Mobile Money</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Amount Paying Now (UGX) *</label>
+                    <input type="number" min="1000" step="5000" x-model.number="paymentForm.amountToPay" required 
+                           class="w-full px-3 py-2 text-sm font-mono font-bold rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
+                    <button type="button" @click="showPaymentModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-emerald-600/20 inline-flex items-center space-x-2">
+                        <i class="fa-solid fa-print"></i>
+                        <span>Process & Print Receipt</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+                <!-- MESSAGING VIEW STUB -->
+                <section x-show="$store.app.currentView === 'messaging'" style="display: none;">
+                    <h2 class="text-xl font-bold text-slate-800">Bulk SMS & Communication</h2>
+                    <p class="text-xs text-slate-500 mb-6">Send targeted SMS notifications to parents and guardians.</p>
+                </section>
+
+                <!-- LICENSING & SETTINGS VIEW -->
+<section x-show="$store.app.currentView === 'settings'" x-data="licensingComponent" class="space-y-6" style="display: none;">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-slate-800">Software Licensing & Term Setup</h2>
+            <p class="text-xs text-slate-500">Manage system subscription status, renewal payment links, and academic periods.</p>
+        </div>
+    </div>
+
+    <!-- License Overview Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <!-- Status Card -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-[11px] font-bold text-slate-400 uppercase">Subscription Status</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold border"
+                      :class="systemStatus.active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'"
+                      x-text="systemStatus.active ? 'Active' : 'Expired'"></span>
+            </div>
+            <div class="text-2xl font-black text-slate-800" x-text="systemStatus.licenseType"></div>
+            <p class="text-xs text-slate-500 font-mono" x-text="`Key: ${systemStatus.licenseKey}`"></p>
+        </div>
+
+        <!-- Expiry Card -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
+            <span class="text-[11px] font-bold text-slate-400 uppercase">Validity Period</span>
+            <div class="text-2xl font-black text-blue-600" x-text="`${systemStatus.daysRemaining} Days Left`"></div>
+            <p class="text-xs text-slate-500" x-text="`Expires on ${systemStatus.expiryDate}`"></p>
+        </div>
+
+        <!-- Renewal Action Card -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-4">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase">Renewal & Key Entry</span>
+                <p class="text-xs text-slate-500 mt-1">Enter a new key provided after payment to extend software validity.</p>
+            </div>
+            <button @click="showActivateModal = true" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-all shadow-md shadow-blue-600/20 inline-flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-key"></i>
+                <span>Enter Activation Key</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Payment External Portals & Links -->
+    <div class="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
+        <h3 class="font-bold text-slate-800 text-sm">Payment Portals & Reference Details</h3>
+        <p class="text-xs text-slate-500">Make payments via any of the standard merchant payment links below and receive your key upon confirmation.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+            <template x-for="link in paymentPortalLinks" :key="link.provider">
+                <div class="p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                    <div class="font-bold text-xs text-slate-800" x-text="link.provider"></div>
+                    <div class="text-[11px] font-mono text-slate-500" x-text="link.ref"></div>
+                    <a :href="link.url" target="_blank" rel="noopener noreferrer" class="inline-block text-[11px] text-blue-600 font-bold hover:underline">
+                        Visit Payment Gateway <i class="fa-solid fa-arrow-up-right-from-square text-[9px] ms-1"></i>
+                    </a>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- ACTIVATION KEY MODAL -->
+    <div x-show="showActivateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4" style="display: none;">
+        <div @click.away="showActivateModal = false" class="bg-white w-full max-w-md rounded-2xl shadow-2xl border border-slate-200 p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 class="font-bold text-slate-800 text-base">Activate Software License</h3>
+                <button @click="showActivateModal = false" class="text-slate-400 hover:text-slate-600 text-sm"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <form @submit.prevent="activateNewLicense()" class="space-y-4">
+                <div>
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Enter Key / Reference Code *</label>
+                    <input type="text" x-model="licenseKeyInput" placeholder="e.g. ACME-2026-TERM2-XXXX-XXXX" required
+                           class="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500">
+                </div>
+
+                <div class="flex items-center justify-end space-x-3 border-t border-slate-100 pt-4">
+                    <button type="button" @click="showActivateModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-500 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20">
+                        Verify & Activate
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+                <!-- PRINT AREA CONTAINER (HIDDEN UNTIL PRINT) -->
+                <div id="printable-area"></div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- Application Script Module -->
+    <script type="module" src="./assets/js/app.js"></script>
+</body>
+</html>
