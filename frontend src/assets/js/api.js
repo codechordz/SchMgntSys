@@ -25,7 +25,18 @@ export const API = {
                 throw new Error(data.message || `Server returned status ${response.status}`);
             }
 
-            return { success: true, data };
+           
+if (!response.ok || data?.success === false) {
+    throw new Error(data?.message || `Server returned status ${response.status}`);
+}
+
+const payload =
+    data && typeof data === 'object' && 'data' in data
+        ? data.data
+        : data;
+
+return { success: true, data: payload };
+
         } catch (error) {
             console.error(`[API Error ${method} ${endpoint}]:`, error);
             window.dispatchEvent(new CustomEvent('app-toast', {
