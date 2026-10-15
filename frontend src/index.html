@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X-SMS | School Management System</title>
+    <title>X-NET | School Management System</title>
     
     <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -75,13 +75,13 @@
                             <i class="fa-solid w-5 text-center" :class="item.icon"></i>
                             <span x-text="item.label"></span>
                         </button>
-                        <button @click="$store.app.setView('reports')" 
+                    </template>
+                     <button @click="$store.app.setView('reports')" 
         class="flex items-center space-x-3 px-4 py-3 rounded-xl font-medium text-xs transition-colors"
         :class="$store.app.currentView === 'reports' ? 'bg-blue-600 text-white font-bold' : 'text-slate-600 hover:bg-slate-100'">
     <i class="fa-solid fa-file-invoice text-sm"></i>
     <span>Report Cards</span>
 </button>
-                    </template>
                 </nav>
             </div>
 
@@ -655,7 +655,7 @@
                 </section>
 
                 <!-- LICENSING & SETTINGS VIEW -->
-<section x-show="$store.app.currentView === 'settings'" x-data="licensingComponent" class="space-y-6" style="display: none;">
+<section x-show="$store.app.currentView === 'licensing'" x-data="licensingComponent" class="space-y-6" style="display: none;">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
