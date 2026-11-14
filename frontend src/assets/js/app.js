@@ -36,22 +36,22 @@ document.addEventListener('alpine:init', () => {
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">Students enrolled</div><div class="mt-2 text-3xl font-black text-slate-900" x-text="loadingStats ? '…' : stats.students.toLocaleString()"></div><div class="mt-1 text-xs text-slate-500">Current student directory</div></div>
                     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">Classes represented</div><div class="mt-2 text-3xl font-black text-indigo-600" x-text="loadingStats ? '…' : stats.classes"></div><div class="mt-1 text-xs text-slate-500">Based on enrolled students</div></div>
-                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">Fees collected</div><div class="mt-2 text-3xl font-black text-emerald-600" x-text="loadingStats ? '…' : `${stats.collectionRate}%`"></div><div class="mt-1 text-xs text-slate-500" x-text="`UGX ${stats.paid.toLocaleString()} of ${stats.fees.toLocaleString()}`"></div></div>
-                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">Outstanding fees</div><div class="mt-2 text-3xl font-black text-amber-600" x-text="loadingStats ? '…' : `UGX ${stats.balance.toLocaleString()}`"></div><div class="mt-1 text-xs text-slate-500">Remaining student balances</div></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">Fees collected</div><div class="mt-2 text-3xl font-black text-emerald-600" x-text="loadingStats ? '…' : stats.collectionRate + '%' "></div><div class="mt-1 text-xs text-slate-500" x-text="'UGX ' + stats.paid.toLocaleString() + ' of ' + stats.fees.toLocaleString()"></div></div>
+                    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div class="text-xs font-bold uppercase tracking-wide text-slate-400">Outstanding fees</div><div class="mt-2 text-3xl font-black text-amber-600" x-text="loadingStats ? '…' : 'UGX ' + stats.balance.toLocaleString()"></div><div class="mt-1 text-xs text-slate-500">Remaining student balances</div></div>
                 </div>
 
                 <div class="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_.85fr]">
                     <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                         <div class="flex items-center justify-between gap-3">
                             <div><h3 class="font-bold text-slate-900">Today's timetable</h3><p class="mt-1 text-xs text-slate-500" x-text="todayLabel"></p></div>
-                            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700" x-text="`${todayLessons.length} lessons`"></span>
+                            <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700" x-text="todayLessons.length + ' lessons'"></span>
                         </div>
                         <div class="mt-4 space-y-3" x-show="todayLessons.length">
                             <template x-for="lesson in todayLessons" :key="lesson.id">
                                 <article class="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
                                     <div class="min-w-[74px] rounded-lg bg-white px-2 py-2 text-center shadow-sm"><div class="text-sm font-black text-slate-800" x-text="lesson.startTime"></div><div class="text-[10px] text-slate-400" x-text="lesson.endTime"></div></div>
-                                    <div class="min-w-0 flex-1"><div class="font-bold text-slate-800" x-text="lesson.subject"></div><div class="mt-1 text-xs text-slate-500" x-text="`${lesson.className} · ${lesson.room || 'Room not set'}`"></div><div class="mt-1 text-xs text-blue-700" x-text="`Teacher: ${lesson.teacher}`"></div></div>
-                                    <button type="button" @click="removeLesson(lesson.id)" class="rounded-lg px-2 py-1 text-xs font-semibold text-slate-400 hover:bg-rose-50 hover:text-rose-600" :aria-label="`Remove ${lesson.subject}`">Remove</button>
+                                    <div class="min-w-0 flex-1"><div class="font-bold text-slate-800" x-text="lesson.subject"></div><div class="mt-1 text-xs text-slate-500" x-text="lesson.className + ' · ' + (lesson.room || 'Room not set')"></div><div class="mt-1 text-xs text-blue-700" x-text="'Teacher: ' + lesson.teacher"></div></div>
+                                    <button type="button" @click="removeLesson(lesson.id)" class="rounded-lg px-2 py-1 text-xs font-semibold text-slate-400 hover:bg-rose-50 hover:text-rose-600" :aria-label="'Remove ' + lesson.subject">Remove</button>
                                 </article>
                             </template>
                         </div>
@@ -75,7 +75,7 @@ document.addEventListener('alpine:init', () => {
                         <div class="flex items-center justify-between"><div><h3 class="font-bold text-slate-900">Next lessons</h3><p class="mt-1 text-xs text-slate-500">Your upcoming classes this week</p></div><i class="fa-solid fa-bell text-blue-500"></i></div>
                         <div class="mt-4 space-y-3" x-show="upcomingLessons.length">
                             <template x-for="lesson in upcomingLessons" :key="lesson.id">
-                                <div class="flex gap-3 rounded-xl bg-slate-50 p-3"><div class="min-w-[52px] text-center"><div class="text-[10px] font-bold uppercase text-slate-400" x-text="lesson.day.slice(0, 3)"></div><div class="mt-1 text-sm font-black text-slate-800" x-text="lesson.startTime"></div></div><div><div class="text-sm font-bold text-slate-800" x-text="lesson.subject"></div><div class="mt-1 text-xs text-slate-500" x-text="`${lesson.className} · ${lesson.teacher}`"></div></div></div>
+                                <div class="flex gap-3 rounded-xl bg-slate-50 p-3"><div class="min-w-[52px] text-center"><div class="text-[10px] font-bold uppercase text-slate-400" x-text="lesson.day.slice(0, 3)"></div><div class="mt-1 text-sm font-black text-slate-800" x-text="lesson.startTime"></div></div><div><div class="text-sm font-bold text-slate-800" x-text="lesson.subject"></div><div class="mt-1 text-xs text-slate-500" x-text="lesson.className + ' · ' + lesson.teacher"></div></div></div>
                             </template>
                         </div>
                         <p x-show="!upcomingLessons.length" class="mt-4 rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">Your upcoming timetable will appear here.</p>
